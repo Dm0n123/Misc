@@ -1,0 +1,278 @@
+<html>
+	<head>
+		<title>Minesweeper</title>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.7/p5.min.js"></script>
+	</head>
+	<body>
+		<p id="mines" style="font-size:30px; position:absolute; top:0; right:30px;"></p>
+		<p id="timer" style="font-size:30px; position:absolute; top:30px; right: 30px;">0 seconds</p>
+		<button id="toggle" onclick="toggleMode();" style="font-size: 22px; border-radius:50%; border:1px solid black; width: 30px; height: 30px; background-color:light-gray; color:red;">C</button>
+		<p>F: flag</p>
+		<p>C: clear</p>
+	</body>
+	<style>
+		canvas {
+			float: left;
+		}
+		
+		p {
+			color: red;
+			font-family: Comic Sans MS;
+		}
+		
+		p#toggle:active {
+			width: 28px;
+			height: 28px;
+			font-size: 20px;
+		}
+	</style>
+	<script>
+		//-------------------SETTTINGS----------------------
+		//----------YOU CAN TWEAK THESE NUMBERS-------------
+		let mines = 40; //defualt 40
+		let gridSizeX = 16; //default 16
+		let gridSizeY = 16; //default 16
+		let tileSize = 32; //default 32
+		//---------------END OF SETTINGS--------------------
+
+		let fps = 30;
+		let numberColors;
+		let windowSizeX = gridSizeX * tileSize + 1;
+		let windowSizeY = gridSizeY * tileSize + 1;
+		
+		function setup() {
+			createCanvas(windowSizeX, windowSizeY);
+			frameRate(fps);
+			numberColors = [
+				null,
+				color(0, 0, 255), //blue
+				color(0, 255, 0), //green
+				color(255, 0, 0), //red
+				color(255, 0, 255), //purple
+				color(128, 0, 0), //dark red
+				color(0, 255, 255), //aqua
+				color(0, 0, 0), //black
+				color(220, 220, 220) //light gray
+			];
+		
+		}
+
+		function draw() {
+			timer++;
+			if (timer % fps == 0) {
+				seconds++;
+				if (seconds == 1) {
+					document.getElementById("timer").innerHTML = "1 second";
+				} else {
+					document.getElementById("timer").innerHTML = seconds + " seconds";
+				}
+			}
+			document.getElementById("mines").innerHTML = flags + " / " + mines + " mines flagged";
+			if (lost == 1) {
+				lost++;
+			} else if (lost == 2) {
+				lose();
+			}
+			if (won == 1) {
+				won++;
+				for (let x = 0; x < gridSizeX; x++) {
+					for (let y = 0; y < gridSizeY; y++) {
+						if (revealed[x][y] == 0) {
+							revealed[x][y] = 1;
+						}
+					}
+				}
+			} else if (won == 2) {
+				win();
+			}
+			for (let x = 0; x < gridSizeX; x++) {
+				for (let y = 0; y < gridSizeY; y++) {
+					if (revealed[x][y] == 1 && numbers[x][y] != -1) {
+						fill(color(192, 192, 192));
+					} else if (revealed[x][y] != 1) {
+						fill(color(120, 120, 120));
+					} else if (revealed[x][y] == 1) {
+						fill(color(255, 0, 0));
+					}
+					noStroke();
+					rect(x * tileSize, y * tileSize, tileSize, tileSize);
+					noFill();
+					stroke(color(0, 0, 0));
+					rect(x * tileSize, y * tileSize, tileSize, tileSize);
+					if (revealed[x][y] == 1 && numbers[x][y] > 0) {
+						fill(numberColors[numbers[x][y]]);
+						let fontSize = Math.floor(tileSize - tileSize / 4);
+						textSize(fontSize);
+						text(numbers[x][y].toString(), x * tileSize + tileSize / 4, (y + 1) * tileSize - tileSize / 4);	
+					} else if (revealed[x][y] == 2) {
+						fill(255, 0, 0);
+						let fontSize = Math.floor(tileSize - tileSize / 4);
+						textSize(fontSize);
+						text("F", x * tileSize + tileSize / 4, (y + 1) * tileSize - tileSize / 4);
+					}
+				}	
+			}
+			if (flags == mines && won == 0) {
+				let correct = true;
+				for (let x = 0; x < gridSizeX; x++) {
+					for (let y = 0; y < gridSizeY; y++) {
+						if (numbers[x][y] == -1 && revealed[x][y] != 2) {
+							correct = false;
+						}
+					}
+				}
+				if (correct) {
+					won = 1;
+				}
+			}
+		}
+		
+		function toggleMode() {
+			if (mode == "clear") {
+				mode = "flag";
+				document.getElementById("toggle").innerHTML = "F";
+			} else if (mode == "flag") {
+				mode = "clear";
+				document.getElementById("toggle").innerHTML = "C";
+			}
+		}
+		
+		function lose() {
+			noLoop();
+			alert("You lost!");
+		}
+		
+		function win() {
+			noLoop();
+			alert("You won!");
+		}
+
+		function mouseClicked() {
+			if (mouseX < 0 || mouseX > windowSizeX || mouseY < 0 || mouseY > windowSizeY) {
+				return;
+			}
+			let x = Math.floor(mouseX / tileSize);
+			let y = Math.floor(mouseY / tileSize);
+			if (mode == "clear" && revealed[x][y] != 2) {
+				if (numbers[x][y] == -1) {
+					lost = 1;
+				}
+				if (numbers[x][y] == 0 && revealed[x][y] == 0) {
+					let todo = [{x: x, y: y}];
+					do {
+						let n = [];
+						for (let i = 0; i < todo.length; i++) {
+							let a = todo[i].x;
+							let b = todo[i].y;
+							if (revealed[a][b] == 0) {
+								revealed[a][b] = 1;
+								if (b > 0 && numbers[a][b-1] == 0 && revealed[a][b-1] == 0)
+									n.push({x: a, y: b-1});
+								if (a < gridSizeX - 1 && numbers[a+1][b] == 0 && revealed[a+1][b] == 0)
+									n.push({x: a+1, y: b});
+								if (b < gridSizeX - 1 && numbers[a][b+1] == 0 && revealed[a][b+1] == 0)
+									n.push({x: a, y: b+1});
+								if (a > 0 && numbers[a-1][b] == 0 && revealed[a-1][b] == 0)
+									n.push({x: a-1, y: b});
+								if (b > 0 && a > 0 && numbers[a-1][b-1] == 0 && revealed[a-1][b-1] == 0)
+									n.push({x: a-1, y: b-1});
+								if (b > 0 && a < gridSizeX - 1 && numbers[a+1][b-1] == 0 && revealed[a+1][b-1] == 0)
+									n.push({x: a+1, y: b-1});
+								if (a < gridSizeX - 1 && b < gridSizeY - 1 && numbers[a+1][b+1] == 0 & revealed[a+1][b+1] == 0)
+									n.push({x: a+1, y: b+1});
+								if (a > 0 && b < gridSizeY - 1 && numbers[a-1][b+1] == 0 && revealed[a-1][b+1] == 0)
+									n.push({x: a-1, y: b+1});
+								
+								if (a > 0 && b > 0 && numbers[a-1][b-1] > 0)
+									revealed[a-1][b-1] = 1;
+								if (b > 0 && numbers[a][b-1] > 0)
+									revealed[a][b-1] = 1;
+								if (b > 0 && a < gridSizeX - 1 && numbers[a+1][b-1] > 0)
+									revealed[a+1][b-1] = 1;
+								if (a < gridSizeX - 1 && numbers[a+1][b] > 0)
+									revealed[a+1][b] = 1;
+								if (a < gridSizeX - 1 && b < gridSizeY - 1 && numbers[a+1][b+1] > 0)
+									revealed[a+1][b+1] = 1;
+								if (b < gridSizeY && numbers[a][b+1] > 0)
+									revealed[a][b+1] = 1;
+								if (a > 0 && b < gridSizeY - 1 && numbers[a-1][b+1] > 0)
+									revealed[a-1][b+1] = 1;
+								if (a > 0 && numbers[a-1][b] > 0)
+									revealed[a-1][b] = 1;
+							}
+						}
+						todo = n;
+					} while (todo.length > 0);
+				}
+				revealed[x][y] = 1;
+			} else if (mode == "flag") {
+				if (revealed[x][y] == 2) {
+					revealed[x][y] = 0;
+					flags--;
+				} else if (revealed[x][y] == 0) {
+					revealed[x][y] = 2;
+					flags++;
+				}
+			}
+		}
+		
+		let mode = "clear";
+		let lost = 0;
+		let flags = 0;
+		let won = 0;
+		let timer = 0;
+		let seconds = 0;
+		
+		//Initialize the numbers and revealed arrays
+		let numbers = [];
+		let revealed = [];
+		for (let x = 0; x < gridSizeX; x++) {
+			let row = [];
+			let row2 = [];
+			for (let y = 0; y < gridSizeY; y++) {
+				row.push(-2);
+				row2.push(0);
+			}
+			numbers.push(row);
+			revealed.push(row2);
+		}
+		
+		//Place mines in the array
+		for (let i = 0; i < mines; i++) {
+			let x = 0;
+			let y = 0;
+			do {
+				x = Math.floor(Math.random() * gridSizeX);
+				y = Math.floor(Math.random() * gridSizeY);
+			} while (numbers[x][y] == -1);
+			numbers[x][y] = -1;
+		}
+		
+		//Calculate number of mines around each tile
+		for (let x = 0; x < gridSizeX; x++) {
+			for (let y = 0; y < gridSizeY; y++) {
+				if (numbers[x][y] != -1) {
+					let count = 0;
+					if (x > 0 && y > 0 && numbers[x-1][y-1] == -1)
+						count++;
+					if (y > 0 && numbers[x][y-1] == -1)
+						count++;
+					if (y > 0 && x < gridSizeX - 1 && numbers[x+1][y-1] == -1)
+						count++;
+					if (x < gridSizeX - 1 && numbers[x+1][y] == -1)
+						count++;
+					if (x < gridSizeX - 1 && y < gridSizeY - 1 && numbers[x+1][y+1] == -1)
+						count++;
+					if (y < gridSizeY - 1 && numbers[x][y+1] == -1)
+						count++;
+					if (x > 0 && y < gridSizeY - 1 && numbers[x-1][y+1] == -1)
+						count++;
+					if (x > 0 && numbers[x-1][y] == -1)
+						count++;	
+					numbers[x][y] = count;
+				}
+			}
+		}
+		
+	</script>
+</html>
