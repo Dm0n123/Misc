@@ -1,0 +1,118 @@
+<html>
+	<head>
+		<title>Snake</title>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.7/p5.min.js"></script>
+	</head>
+ 	<body>
+		<p id="score" style="font-family:Comic-Sans-MS; font-size:30px; position:absolute; right: 30px; top: 0; color: red;"></p>
+	</body>
+	<script>
+		function setup() {
+			cnv = createCanvas(481, 481);
+			frameRate(30);
+		}
+		
+		function draw() {
+			clear();
+			document.getElementById("score").innerHTML = "Score: " + score;
+			for (let x = 0; x < 15; x++) {
+				for (let y = 0; y < 15; y++) {
+					let found = false;
+					for (let i = 0 ; i < tail.length; i++) {
+						if (x == tail[i].x && y == tail[i].y) {
+							found = true;
+						}
+					}
+					if (!found) {
+						fill(color(0, 0, 0));
+						rect(32 * x, 32 * y, 32, 32);
+					}
+				}
+			}
+			fill(color(0, 255, 0));
+			rect(32 * headX, 32 * headY, 32, 32);
+			fill(color(255, 0 ,0));
+			rect(32 * fruitX, 32 * fruitY, 32, 32);
+			timer++;
+			if (timer >= Math.floor(30 / 4)) {
+				timer = 0;
+				for (let i = 0; i < tail.length; i++) {
+					if (headX == tail[i].x && headY == tail[i].y) {
+						lose();
+					}	
+				}
+				if (tail.length >= size) {
+					tail.shift();
+				}
+				if (size > 0) {
+					tail.push({x: headX, y: headY});
+				}
+
+				if (dir == "UP") {
+					if (headY <= 0) {
+						lose();
+					}
+					headY--;
+				} else if (dir == "DOWN") {
+					if (headY >= 14) {
+						lose();
+					}
+					headY++;
+				} else if (dir == "LEFT") {
+					if (headX <= 0) {
+						lose();
+					}
+					headX--;
+				} else if (dir == "RIGHT") {
+					if (headX >= 14) {
+						lose();
+					}
+					headX++;
+				}
+				if (headX == fruitX && headY == fruitY) {
+					score += 1000;
+					size++;
+					fruitX = Math.floor(Math.random() * 15);
+					fruitY = Math.floor(Math.random() * 15);
+				}
+			}
+			
+		}
+		
+		function lose() {
+			noLoop();
+			textSize(30);
+			fill(color(255, 0, 0));
+			text("You lost!\nFinal score: " + score, 150, 200);
+		}
+		
+		function keyPressed() {
+			switch(keyCode) {
+				case UP_ARROW:
+					dir = "UP";
+					break;
+				case DOWN_ARROW:
+					dir = "DOWN";
+					break;
+				case LEFT_ARROW:
+					dir = "LEFT";
+					break;
+				case RIGHT_ARROW:
+					dir = "RIGHT";
+					break;
+				default:
+					break;
+			}
+		}
+		let dir = "LEFT";
+		let cnv = null;
+		let timer = 0;
+		let headX = 7;
+		let headY = 7;
+		let size = 0;
+		let tail = [];
+		let fruitX = Math.floor(Math.random() * 15);
+		let fruitY = Math.floor(Math.random() * 15);
+		let score = 0;
+	</script>
+</html>
