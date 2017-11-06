@@ -1,0 +1,148 @@
+<html>
+	<head>
+		<title>Flappy bird</title>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.7/p5.min.js"></script>
+	</head>
+	<style></style>
+	<body></body>
+	<script>
+		const screenSizeX = 800;
+		const screenSizeY = 600;
+		const pipes = {};
+		const movementSpeed = 5;
+		const fps = 60;
+		const fontSize = 35;
+		let fontColor;
+		let pipe = {
+			interval: 0,
+			distance: 500,
+			minY: 30,
+			minH: 100,
+			maxH: 150
+		};
+		pipe.maxY = screenSizeY - pipe.maxH - 30;
+		let lost = false;
+		let player;
+		let score = 0;
+		
+		function setup() {
+			createCanvas(screenSizeX + 1, screenSizeY + 1);
+			frameRate(fps);
+			fontColor = color(255, 255, 0);
+			player = new Bird((screenSizeX - 24) / 2, (screenSizeY - 24) / 2, color(200, 0, 0));
+		}
+		
+		function draw() {
+			clear();
+			
+			fill(0, 180, 200);
+			rect(0, 0, screenSizeX, screenSizeY);
+			
+			textSize(fontSize);
+			textAlign(CENTER, CENTER);
+			fill(fontColor);
+			text(score, 35, 35);
+			
+			for (let p of Object.values(pipes)) {
+				p.draw();
+			}
+			
+			pipe.interval -= movementSpeed;
+			if (pipe.interval < 0) {
+				pipe.interval = pipe.distance;
+				
+				let y = Math.floor((pipe.maxY - pipe.minY) * Math.random()) + pipe.minY;
+				let h = Math.floor((pipe.maxH - pipe.minH) * Math.random()) + pipe.minH;
+				new Pipe(screenSizeX, y, h);
+			}
+			
+			player.draw();
+			
+			if (lost && player.y - player.h > screenSizeY) {
+				alert("You lost, your final score is " + score);
+				noLoop();
+			}
+		}
+		
+		class Bird {
+			constructor(x, y, c) {
+				this.x = x;
+				this.y = y;
+				this.w = 24;
+				this.h = 24;
+				this.c = c;
+				this.v = 0;
+				this.a = -0.4;
+			}
+			
+			draw() {
+				this.v += this.a;
+				this.y -= this.v;
+				
+				if (this.y < 0) {
+					this.v = 0;
+					this.y = 0;
+				} else if (this.y > screenSizeY && !lost)
+					lose();
+				
+				fill(this.c);
+				rect(this.x, this.y, this.w, this.h);
+				
+				for (let p of Object.values(pipes)) {
+					if (this.x + this.w >= p.top.x && this.x <= p.top.x + p.top.w) {
+						if (this.y <= p.top.y + p.top.h || this.y + this.h >= p.bottom.y) {
+							if (!lost)
+								lose();
+						} else if (Math.abs(this.x - Math.floor(p.top.x + p.top.w / 2)) <= 2 && !lost) {
+							score++;
+						}
+					}
+				}
+			}
+		}
+		
+		class Pipe {
+			constructor(x, y, h) {
+				this.top = {x:x, y:0, w:32, h:y};
+				this.bottom = {x:x, y:y+h, w:32, h:screenSizeY-y-h};
+				this.c = color(50, 170, 50);
+				this.uuid = uuid();
+				
+				pipes[this.uuid] = this;
+			}
+			
+			draw() {
+				if (!lost) {
+					this.top.x -= movementSpeed;
+					this.bottom.x = this.top.x;
+				}
+				
+				if (this.top.x + this.top.w < 0) {
+					delete pipes[this.uuid];
+				}
+				
+				fill(this.c);
+				rect(this.top.x, this.top.y, this.top.w, this.top.h);
+				rect(this.bottom.x, this.bottom.y, this.bottom.w, this.bottom.h);
+			}
+		}
+		
+		function uuid() {
+			function s4() {
+				return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+			}
+			return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
+		}
+		
+		function keyPressed() {
+			if (keyCode == 32 && !lost) { // spacebar
+				player.v = 10;
+			}
+		}
+		
+		function lose() {
+			lost = true;
+			player.v = 10;
+		}
+	</script>
+</html>
