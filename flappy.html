@@ -1,111 +1,123 @@
 <html>
 	<head>
-		<title>Flappy bird</title>
+		<title>Flappy Bird</title>
 		<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.7/p5.min.js"></script>
 	</head>
-	<style></style>
 	<body></body>
 	<script>
-		const screenSizeX = 800;
-		const screenSizeY = 600;
-		const pipes = {};
-		const movementSpeed = 5;
+		const windowSizeX = 800;
+		const windowSizeY = 600;
 		const fps = 60;
-		const fontSize = 35;
-		let fontColor;
+		const movementSpeed = 5;
+		let backgrounds;
 		let pipe = {
-			interval: 0,
-			distance: 500,
+			spacing: 400,
+			timer: 0,
 			minY: 30,
-			minH: 100,
-			maxH: 150
-		};
-		pipe.maxY = screenSizeY - pipe.maxH - 30;
-		let lost = false;
+			minH: 120,
+			maxH: 180,
+			sprite: {}
+		}
+		pipe.maxY = windowSizeY - pipe.maxH - 30;
 		let player;
+		let pipes = {};
+		let birdSprite;
+		let lost = false;
 		let score = 0;
+		let bg;
 		
 		function setup() {
-			createCanvas(screenSizeX + 1, screenSizeY + 1);
+			createCanvas(windowSizeX + 1, windowSizeY + 1);
 			frameRate(fps);
-			fontColor = color(255, 255, 0);
-			player = new Bird((screenSizeX - 24) / 2, (screenSizeY - 24) / 2, color(200, 0, 0));
+			player = new Bird(34, 24);
+			birdSprite = loadImage("https://i.imgur.com/k4RfJ0H.png");
+			pipe.sprite.top = loadImage("https://i.imgur.com/sx1AGxo.png");
+			pipe.sprite.bottom = loadImage("https://i.imgur.com/5r9VTHw.png");
+			
+			backgrounds = [
+				loadImage("https://i.imgur.com/0K1CoIw.jpg"),
+				loadImage("https://i.imgur.com/8mQtOWB.jpg"),
+				loadImage("https://i.imgur.com/p00lPs6.jpg"),
+				loadImage("https://i.imgur.com/Lsg8aD3.jpg"),
+				loadImage("https://i.imgur.com/q7Uq7Ts.jpg"),
+				loadImage("https://i.imgur.com/zmKhiYa.jpg"),
+				loadImage("https://i.imgur.com/yajU0KJ.jpg"),
+				loadImage("https://i.imgur.com/nK8JAYq.jpg"),
+				loadImage("https://i.imgur.com/tMVGqP6.jpg")
+			];
+			
+			bg = backgrounds[Math.floor(Math.random() * backgrounds.length)];
 		}
 		
 		function draw() {
 			clear();
+			noFill();
+			rect(0, 0, windowSizeX, windowSizeY);
 			
-			fill(0, 180, 200);
-			rect(0, 0, screenSizeX, screenSizeY);
+			image(bg, 0, 0, windowSizeX, windowSizeY);
 			
-			textSize(fontSize);
-			textAlign(CENTER, CENTER);
-			fill(fontColor);
-			text(score, 35, 35);
+			pipe.timer -= movementSpeed;
+			if (pipe.timer <= 0) {
+				pipe.timer += pipe.spacing;
+				
+				let y = Math.floor(Math.random() * (pipe.maxY - pipe.minY)) + pipe.minY;
+				let h = Math.floor(Math.random() * (pipe.maxH - pipe.minH)) + pipe.minH;
+				new Pipe(windowSizeX, y, h);
+			}
 			
-			for (let p of Object.values(pipes)) {
+			for (p of Object.values(pipes)) {
 				p.draw();
 			}
 			
-			pipe.interval -= movementSpeed;
-			if (pipe.interval < 0) {
-				pipe.interval = pipe.distance;
-				
-				let y = Math.floor((pipe.maxY - pipe.minY) * Math.random()) + pipe.minY;
-				let h = Math.floor((pipe.maxH - pipe.minH) * Math.random()) + pipe.minH;
-				new Pipe(screenSizeX, y, h);
-			}
-			
 			player.draw();
-			
-			if (lost && player.y - player.h > screenSizeY) {
-				alert("You lost, your final score is " + score);
-				noLoop();
-			}
 		}
 		
 		class Bird {
-			constructor(x, y, c) {
-				this.x = x;
-				this.y = y;
-				this.w = 24;
-				this.h = 24;
-				this.c = c;
+			constructor(w, h) {
+				this.w = w;
+				this.h = h;
+				this.x = (windowSizeX - w) / 2;
+				this.y = (windowSizeY - h) / 2;
 				this.v = 0;
-				this.a = -0.4;
+				this.a = 0.5;
 			}
 			
 			draw() {
+				this.y += this.v;
 				this.v += this.a;
-				this.y -= this.v;
 				
 				if (this.y < 0) {
 					this.v = 0;
-					this.y = 0;
-				} else if (this.y > screenSizeY && !lost)
+					this.y = 0; 
+				} else if (this.y > windowSizeY) {
 					lose();
+				}
 				
-				fill(this.c);
-				rect(this.x, this.y, this.w, this.h);
-				
-				for (let p of Object.values(pipes)) {
-					if (this.x + this.w >= p.top.x && this.x <= p.top.x + p.top.w) {
+				for (p of Object.values(pipes)) {
+					if (this.x + this.w >= p.top.x && this.x <= p.top.x + p.w) {
 						if (this.y <= p.top.y + p.top.h || this.y + this.h >= p.bottom.y) {
-							if (!lost)
-								lose();
-						} else if (Math.abs(this.x - Math.floor(p.top.x + p.top.w / 2)) <= 2 && !lost) {
+							lose();
+						}
+						if (Math.abs(Math.floor((this.x + this.w) / 2) - Math.floor((p.top.x + p.w) / 2)) <= 1 && !lost) {
 							score++;
 						}
 					}
 				}
+				
+				image(birdSprite, this.x, this.y);
+				
+				textAlign(CENTER);
+				textSize(35);
+				fill(255, 255, 0);
+				text(score, 35, 47);
 			}
 		}
 		
 		class Pipe {
 			constructor(x, y, h) {
-				this.top = {x:x, y:0, w:32, h:y};
-				this.bottom = {x:x, y:y+h, w:32, h:screenSizeY-y-h};
-				this.c = color(50, 170, 50);
+				this.top = {x:x, y:0, h:y};
+				this.bottom = {x:x, y:y+h, h:windowSizeY-y-h};
+				this.w = 50;
 				this.uuid = uuid();
 				
 				pipes[this.uuid] = this;
@@ -114,35 +126,39 @@
 			draw() {
 				if (!lost) {
 					this.top.x -= movementSpeed;
-					this.bottom.x = this.top.x;
+					this.bottom.x -= movementSpeed;
 				}
 				
-				if (this.top.x + this.top.w < 0) {
+				if (this.top.x + this.w < 0) {
 					delete pipes[this.uuid];
 				}
 				
-				fill(this.c);
-				rect(this.top.x, this.top.y, this.top.w, this.top.h);
-				rect(this.bottom.x, this.bottom.y, this.bottom.w, this.bottom.h);
+				image(pipe.sprite.top, this.top.x, this.top.h - 800, this.w);
+				image(pipe.sprite.bottom, this.bottom.x, this.bottom.y, this.w);
 			}
+		}
+		
+		function keyPressed() {
+			if (keyCode == 32 && !lost) { // spacebar
+				player.v = -10;
+			}
+		}
+		
+		function lose() {
+			if (lost) {
+				return;
+			}
+			
+			lost = true;
+			player.v = -10;
 		}
 		
 		function uuid() {
 			function s4() {
 				return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
 			}
+			
 			return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
-		}
-		
-		function keyPressed() {
-			if (keyCode == 32 && !lost) { // spacebar
-				player.v = 10;
-			}
-		}
-		
-		function lose() {
-			lost = true;
-			player.v = 10;
 		}
 	</script>
 </html>
