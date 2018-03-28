@@ -1,0 +1,177 @@
+<html>
+	<head>
+		<title>I don't know</title>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.5.7/p5.min.js"></script>
+	</head>
+	<body>
+	</body>
+	<script>
+		const windowSizeX = 800;
+		const windowSizeY = 600;
+		const fps = 60;
+		const food = [];
+		const enemies = [];
+		let player;
+		let time = 0;
+		
+		function setup() {
+			createCanvas(windowSizeX + 1, windowSizeY + 1);
+			frameRate(fps);
+			player = new Player();
+			
+			for (let i = 0; i < 5; i++) {
+				food.push(new Food());
+			}
+			
+			for (let i = 0; i < 3; i++) {
+				enemies.push(new Enemy());
+			}
+		}
+		
+		function draw() {
+			clear();
+			noFill();
+			rect(0, 0, windowSizeX, windowSizeY);
+			
+			if (time % fps / 2 == 0) {
+				player.r--;
+				if (player.r == 0) {
+					noLoop();
+					alert("you died\n\n\n\n\n\n\n\n\n\n\n\lmao");
+				}
+				
+				for (let e of enemies) {
+					e.r--;
+					if (e.r == 0) {
+						enemies.splice(enemies.indexOf(e), 1);
+					}
+				}
+			}
+			
+			if (keyIsDown(87) || keyIsDown(UP_ARROW)) { // w
+				player.y = Math.max(player.y - player.v, player.r);
+			}
+			if (keyIsDown(83) || keyIsDown(DOWN_ARROW)) { // s
+				player.y = Math.min(player.y + player.v, windowSizeY - player.r);
+			}
+			if (keyIsDown(65) || keyIsDown(LEFT_ARROW)) { // a
+				player.x = Math.max(player.x - player.v, player.r);
+			}
+			if (keyIsDown(68) || keyIsDown(RIGHT_ARROW)) { // d
+				player.x = Math.min(player.x + player.v, windowSizeX - player.r);
+			}	
+			
+			for (let k in food) {
+				let f = food[k];
+				f.draw();
+				if (f.collide()) {
+					food.splice(food.indexOf(f), 1);
+					for (let e of enemies) {
+						e.findNearest();
+					}
+				}
+			}
+			
+			player.draw();
+			
+			for (let e of enemies) {
+				e.move();
+				e.draw();
+			}
+			
+			time++;
+		}
+		
+		function pyth(x1, y1, x2, y2) {
+			return Math.sqrt(Math.pow(Math.abs(x1 - x2), 2) + Math.pow(Math.abs(y1 - y2), 2));
+		}
+		
+		class Entity {
+			constructor() {
+				this.r = 16;
+				this.v = 3;
+				this.x = this.r + Math.floor(Math.random() * (windowSizeX - this.r));
+				this.y = this.r + Math.floor(Math.random() * (windowSizeY - this.r));
+				this.color = color(255, 90, 255);
+			}
+			
+			draw() {
+				fill(this.color);
+				ellipse(this.x, this.y, this.r * 2);
+			}
+		}
+		
+		class Player extends Entity {
+			constructor() {
+				super();
+				this.v = 6;
+				this.x = windowSizeX / 2 - this.r;
+				this.y = windowSizeY / 2 - this.r;
+				this.color = color(90, 90, 255);
+			}
+		}
+		
+		class Food {
+			constructor() {
+				this.r = 8;
+				this.color = color(90, 255, 90);
+				this.x = this.r + Math.floor(Math.random() * (windowSizeX - this.r));
+				this.y = this.r + Math.floor(Math.random() * (windowSizeY - this.r));
+			}
+			
+			collide() {
+				if (pyth(this.x, this.y, player.x, player.y) < this.r + player.r) {
+					player.r++;
+					player.score++;
+					food.push(new Food());
+					return true;
+				} else {
+					for (let e of enemies) {
+						if (pyth(this.x, this.y, e.x, e.y) < this.r + e.r) {
+							e.r++;
+							food.push(new Food());
+							return true;
+						}
+					}
+				}
+				return false;
+			}
+			
+			draw() {
+				fill(this.color);
+				ellipse(this.x, this.y, this.r * 2);
+			}
+		}
+		
+		class Enemy extends Entity {
+			constructor() {
+				super();
+				this.x = Math.floor(Math.random() * (windowSizeX - this.r))
+				this.y = Math.floor(Math.random() * (windowSizeY - this.r))
+				this.color = color(255, 90, 90);
+				this.nearest = this.findNearest();
+			}
+			
+			move() {
+				if (this.nearest == null) {
+					this.findNearest();
+				}
+
+				let scale = pyth(this.x, this.y, this.nearest.x, this.nearest.y) / this.v;
+				this.x += (this.nearest.x - this.x) / scale;
+				this.y += (this.nearest.y - this.y) / scale;
+			}
+			
+			findNearest() {
+				this.nearest = null;
+				let distance = Infinity;
+				for (let f of food) {
+					if (pyth(f.x, f.y, this.x, this.y) < distance) {
+						distance = pyth(f.x, f.y, this.x, this.y);
+						this.nearest = f;
+					}
+				}
+			}
+		}
+	</script>
+</html>
